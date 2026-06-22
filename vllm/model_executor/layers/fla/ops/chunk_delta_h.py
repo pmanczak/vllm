@@ -207,10 +207,12 @@ def chunk_gated_delta_rule_fwd_kernel_h_blockdim64(
         if USE_G:
             m_t = (i_t.to(tl.int64) * BT + tl.arange(0, BT)) < T
             b_g_last = tl.load(g + bos * H + last_idx * H + i_h)
-            p_g = tl.make_block_ptr(
-                g + bos * H + i_h, (T,), (H,), (i_t * BT,), (BT,), (0,)
-            )
-            b_g = tl.load(p_g, boundary_check=(0,))
+            # Load g with a plain strided tl.load rather than a 1D block-ptr:
+            # tl.make_block_ptr with a non-unit stride trips the Intel XPU
+            # TritonIntelStrideVersioning pass (LLVM assertion). This is
+            # equivalent and compiles on every backend.
+            o_t = (i_t.to(tl.int64) * BT + tl.arange(0, BT)).to(tl.int64)
+            b_g = tl.load(g + bos * H + i_h + o_t * H, mask=m_t, other=0.0)
             if USE_EXP2:
                 b_v = b_v * tl.where(m_t, exp2(b_g_last - b_g), 0)[:, None]
                 b_g_last = exp2(b_g_last)
