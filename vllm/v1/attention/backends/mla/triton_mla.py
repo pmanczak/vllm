@@ -166,9 +166,14 @@ class TritonMLAImpl(MLACommonImpl[MLACommonMetadata]):
         if envs.VLLM_BATCH_INVARIANT:
             num_kv_splits = 1
         else:
-            # Minimum work per split
-            # hardware dependent
-            min_work_per_split = 512
+            # Minimum work per split (hardware dependent). On XPU the GPU
+            # has many compute units (e.g. 160 Xe-cores) that sit idle when
+            # a short decode sequence collapses to a single KV split, so use
+            # a smaller floor to expose more KV-axis parallelism.
+            if current_platform.is_xpu():
+                min_work_per_split = 128
+            else:
+                min_work_per_split = 512
 
             ideal_splits = max(1, attn_metadata.max_seq_len // min_work_per_split)
 
