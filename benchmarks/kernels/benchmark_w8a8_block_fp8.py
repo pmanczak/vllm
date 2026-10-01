@@ -142,8 +142,7 @@ def get_xpu_tuning_space():
     # NOTE: curated subset of get_configs_compute_bound(); the full grid is
     # too slow to tune on XPU due to per-config Triton JIT compile time.
     # num_warps extended to 16/32: measured geomean 1.35x (up to 2.4x) over
-    # the shipped B70 configs with zero regressions across all 26 shapes,
-    # vs noise-level effects from grf_mode/num_stages=1 widening.
+    # the shipped B70 configs with zero regressions across all 26 shapes.
     configs = []
     for num_stages in [2, 3]:
         for block_m in [32, 64, 128]:
