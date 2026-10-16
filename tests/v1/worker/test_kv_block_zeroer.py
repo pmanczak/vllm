@@ -23,10 +23,12 @@ from vllm.v1.worker.utils import (
 )
 
 DEVICE = current_platform.device_type
-HAS_GPU = current_platform.is_cuda_alike() or current_platform.is_xpu()
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 @pytest.mark.parametrize(
     "spec",
     [
@@ -69,7 +71,10 @@ def test_attention_blocks_are_zeroed(spec):
     assert torch.equal(storage, expected)
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 def test_layers_in_one_group_may_use_different_kernel_pages_per_block():
     """Derive kernel pages per block from each layer's allocation."""
     device = torch.device(DEVICE)
@@ -119,7 +124,10 @@ def test_layers_in_one_group_may_use_different_kernel_pages_per_block():
     assert torch.equal(narrow_backing, expected_narrow)
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 def test_block_ids_are_not_overwritten_while_copy_is_in_flight():
     device = torch.device(DEVICE)
     num_blocks = 4
@@ -156,7 +164,10 @@ def test_block_ids_are_not_overwritten_while_copy_is_in_flight():
     assert torch.all(storage[3] == 1)
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 def test_non_uniform_page_sizes():
     """Two segments with different page sizes (e.g. MLA + DSA indexer)."""
     device = torch.device(DEVICE)
@@ -200,7 +211,10 @@ def test_non_uniform_page_sizes():
         assert torch.all(storage[3] == 1)
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 def test_packed_segment_zeros_only_its_last_block_page():
     """A packed KV segment steps by block stride but clears only its page."""
     device = torch.device(DEVICE)
@@ -292,7 +306,10 @@ def test_large_dsv4_launch_geometry(monkeypatch):
     assert captured_grids == [(n_blocks, n_segs, max_chunks)]
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 def test_warmup_compiles_for_all_block_counts():
     """After warmup, no launch should trigger a first-request JIT compile.
 
@@ -334,7 +351,10 @@ def test_warmup_compiles_for_all_block_counts():
     assert compiled_variants() == warmed
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 def test_warmup_respects_available_block_count():
     """An empty KV cache must not be warmed with out-of-range block IDs."""
     device = torch.device(DEVICE)
@@ -358,7 +378,10 @@ def test_warmup_respects_available_block_count():
     assert torch.all(storage == 1)
 
 
-@pytest.mark.skipif(not HAS_GPU, reason="CUDA or XPU required")
+@pytest.mark.skipif(
+    not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
+    reason="CUDA or XPU required",
+)
 @pytest.mark.parametrize("layout", list(KVCacheLayout))
 def test_zeroes_exactly_one_block_per_layer(layout: KVCacheLayout):
     """The zeroer must zero every byte of the target block in every layer and nothing
