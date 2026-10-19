@@ -25,7 +25,7 @@ DEVICE = current_platform.device_type
 DTYPE = torch.bfloat16
 VOCAB, HIDDEN, NUM_TOKENS, EPS = 8192, 4096, 129, 1e-6
 
-requires_cuda = pytest.mark.skipif(
+requires_gpu = pytest.mark.skipif(
     not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
     reason="fused embed/norm Triton kernels require a CUDA/ROCm/XPU device",
 )
@@ -37,7 +37,7 @@ def _rmsnorm(x: torch.Tensor, w: torch.Tensor, eps: float) -> torch.Tensor:
     return x.float() * torch.rsqrt(var + eps) * w.float()
 
 
-@requires_cuda
+@requires_gpu
 @torch.inference_mode()
 def test_fused_embed_norm_matches_reference():
     """Main-model fusion: the residual is the exact gather and the second output
@@ -57,7 +57,7 @@ def test_fused_embed_norm_matches_reference():
     )
 
 
-@requires_cuda
+@requires_gpu
 @torch.inference_mode()
 def test_fused_embed_eh_norm_matches_reference():
     """MTP fusion (folded gather) is bit-exact vs gathering the embeds and
