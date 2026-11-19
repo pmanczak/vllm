@@ -35,19 +35,17 @@ from vllm.model_executor.model_loader.reload.lifecycle import (
 )
 from vllm.model_executor.model_loader.utils import process_weights_after_loading
 from vllm.model_executor.utils import get_live_param
-from vllm.platforms import current_platform
 from vllm.utils.math_utils import cdiv
 from vllm.utils.torch_utils import set_default_torch_dtype
 
 pytestmark = [
     pytest.mark.skipif(
-        not (current_platform.is_cuda_alike() or current_platform.is_xpu()),
-        reason="FP8 linear kernels need a GPU",
+        not torch.cuda.is_available(), reason="FP8 linear kernels need a GPU"
     ),
     pytest.mark.skip_global_cleanup,
 ]
 
-_DEVICE = torch.device(current_platform.device_type)
+_DEVICE = torch.device("cuda")
 # q_a / kv_a-like shards of unequal sizes; the last ends in a partial block
 _OUT = [1280, 192]
 # MLA checkpoint schemes and their scale's name: one scale per 128x128 block,
@@ -397,9 +395,6 @@ def _glm5_mla_params() -> dict:
     }
 
 
-@pytest.mark.skipif(
-    current_platform.is_xpu(), reason="GLM-5.3-Flash does not support XPU"
-)
 def test_glm5next_attn_loader_renames_weight_scale():
     # Some exporters name the block scale ``weight_scale``; under Fp8Config
     # the projection's scale parameter is ``weight_scale_inv``.
@@ -425,9 +420,6 @@ def test_glm5next_attn_loader_renames_weight_scale():
     assert name == "layers.0.self_attn.o_proj.weight_scale"
 
 
-@pytest.mark.skipif(
-    current_platform.is_xpu(), reason="GLM-5.3-Flash does not support XPU"
-)
 def test_glm5next_nope_kv_a_padding_block_scale():
     # NoPE checkpoints omit kv_a's RoPE rows: the weight gets zero rows and the
     # scale its extra blocks, each on its own (no weight/scale pairing).
@@ -499,5 +491,5 @@ def test_indexer_fuse_allocates_weight_left_on_meta(model_config):
     indexer.wk_weights_proj.weight = indexer.wk_weights_proj.weight.to("meta")
     indexer.process_weights_after_loading()
     fused = indexer.wk_weights_proj.weight
-    assert fused.device.type == current_platform.device_type
+    assert fused.is_cuda
     torch.testing.assert_close(fused, expected, rtol=0, atol=0)
